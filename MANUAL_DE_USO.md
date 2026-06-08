@@ -66,7 +66,7 @@ Permisos limitados:
    ↓
 5. El sistema calcula automáticamente:
    - Subtotal
-   - IVA (19%)
+   - IVA (Parametrizado en configuración)
    - Total
    ↓
 6. Genere la factura
@@ -78,7 +78,7 @@ Permisos limitados:
 - Búsqueda de cliente por cédula
 - Carrito con múltiples productos
 - Cálculo automático de totales
-- IVA 19% incluido
+- IVA parametrizable incluido
 - Observaciones opcionales
 - Descarga automática de PDF
 - Generación automática de número de factura (FAC-001, FAC-002, etc.)
@@ -176,7 +176,7 @@ Cada factura contiene:
 - Información del cliente (Nombre, Cédula, Email)
 - Detalle de productos (Cantidad, Precio Unitario, Subtotal)
 - Subtotal
-- IVA 19%
+- IVA (según configuración)
 - Total
 - Nombre del vendedor
 - Observaciones (si aplica)

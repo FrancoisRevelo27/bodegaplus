@@ -59,7 +59,7 @@ export default function CustomerManager() {
       // Crear log de auditoría
       if (userProfile) {
         await createAuditLog({
-          tipo: "ingreso_producto",
+          tipo: "registro_cliente",
           usuarioId: userProfile.uid,
           usuarioNombre: userProfile.nombre,
           usuarioEmail: userProfile.email,

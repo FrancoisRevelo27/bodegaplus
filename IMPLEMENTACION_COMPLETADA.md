@@ -17,7 +17,7 @@ Tu aplicación BodegaPlus ahora tiene todas las funcionalidades solicitadas:
 - ✅ Selección múltiple de productos
 - ✅ Cálculo automático de:
   - Subtotal
-  - IVA 19%
+  - IVA Parametrizable
   - Total
 - ✅ **Generación de factura en PDF** descargable automáticamente
 - ✅ Observaciones opcionales

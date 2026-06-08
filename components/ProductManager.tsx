@@ -9,8 +9,11 @@ import {
   updateProduct,
 } from "@/lib/firestore";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { useAuth } from "@/context/AuthContext";
+import { createAuditLog } from "@/lib/auditLogs";
 
 export default function ProductManager({ onProductsUpdated }: { onProductsUpdated: (products: Product[]) => void }) {
+  const { userProfile } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ name: "", sku: "", unitPrice: "", stock: "" });
@@ -46,6 +49,22 @@ export default function ProductManager({ onProductsUpdated }: { onProductsUpdate
         unitPrice: Number(form.unitPrice),
         stock: Number(form.stock),
       });
+
+      if (userProfile) {
+        await createAuditLog({
+          tipo: "ingreso_producto",
+          usuarioId: userProfile.uid,
+          usuarioNombre: userProfile.nombre,
+          usuarioEmail: userProfile.email,
+          descripcion: `Producto agregado: ${form.name}`,
+          detalles: {
+            productSku: form.sku,
+            precio: Number(form.unitPrice),
+            stock: Number(form.stock)
+          },
+        });
+      }
+
       setForm({ name: "", sku: "", unitPrice: "", stock: "" });
       await loadProducts();
     } catch (err) {
@@ -63,6 +82,21 @@ export default function ProductManager({ onProductsUpdated }: { onProductsUpdate
     setOperationId(productId);
     setError(null);
     try {
+      const productToDelete = products.find(p => p.id === productId);
+      if (userProfile && productToDelete) {
+        await createAuditLog({
+          tipo: "eliminacion_producto",
+          usuarioId: userProfile.uid,
+          usuarioNombre: userProfile.nombre,
+          usuarioEmail: userProfile.email,
+          descripcion: `Producto eliminado: ${productToDelete.name}`,
+          detalles: {
+            productId,
+            productSku: productToDelete.sku
+          },
+        });
+      }
+      
       await deleteProduct(productId);
       await loadProducts();
     } catch (err) {
@@ -82,6 +116,22 @@ export default function ProductManager({ onProductsUpdated }: { onProductsUpdate
         unitPrice: product.unitPrice,
         stock: product.stock,
       });
+
+      if (userProfile) {
+        await createAuditLog({
+          tipo: "actualizacion_producto",
+          usuarioId: userProfile.uid,
+          usuarioNombre: userProfile.nombre,
+          usuarioEmail: userProfile.email,
+          descripcion: `Producto actualizado: ${product.name}`,
+          detalles: {
+            productId: product.id,
+            nuevoPrecio: product.unitPrice,
+            nuevoStock: product.stock
+          },
+        });
+      }
+
       await loadProducts();
     } catch (err) {
       setError("No se pudo actualizar el producto.");

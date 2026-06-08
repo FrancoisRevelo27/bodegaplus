@@ -7,7 +7,7 @@ import { createInvoice, getLatestInvoiceNumber } from "@/lib/invoices";
 import { createAuditLog } from "@/lib/auditLogs";
 import { useAuth } from "@/context/AuthContext";
 import { downloadInvoicePDF } from "@/lib/pdfGenerator";
-import { getDocs, collection, query, where } from "firebase/firestore";
+import { getDocs, collection, query, where, getDoc, doc, updateDoc, increment, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export default function SalesManager() {
@@ -17,6 +17,7 @@ export default function SalesManager() {
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<SaleItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState("");
+  const [ivaPercentage, setIvaPercentage] = useState(12);
   const [quantity, setQuantity] = useState("1");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -35,7 +36,22 @@ export default function SalesManager() {
 
   useEffect(() => {
     loadProducts();
+    loadConfig();
   }, []);
+
+  const loadConfig = async () => {
+    try {
+      const configDoc = await getDoc(doc(db, "settings", "general"));
+      if (configDoc.exists()) {
+        const data = configDoc.data();
+        if (data.ivaPercentage !== undefined) {
+          setIvaPercentage(Number(data.ivaPercentage));
+        }
+      }
+    } catch (err) {
+      console.error("Error loading config:", err);
+    }
+  };
 
   const loadProducts = async () => {
     try {
@@ -73,7 +89,7 @@ export default function SalesManager() {
       // Crear log de auditoría
       if (userProfile) {
         await createAuditLog({
-          tipo: "ingreso_producto",
+          tipo: "registro_cliente",
           usuarioId: userProfile.uid,
           usuarioNombre: userProfile.nombre,
           usuarioEmail: userProfile.email,
@@ -193,7 +209,7 @@ export default function SalesManager() {
 
   const calculateTotals = () => {
     const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
-    const iva = subtotal * 0.19;
+    const iva = subtotal * (ivaPercentage / 100);
     const total = subtotal + iva;
 
     return { subtotal, iva, total };
@@ -234,6 +250,27 @@ export default function SalesManager() {
       };
 
       const createdInvoice = await createInvoice(invoice);
+
+      // REGISTRO PARA REPORTES: Guardar cada item en la colección 'sales'
+      for (const item of cart) {
+        await addDoc(collection(db, "sales"), {
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalAmount: item.subtotal,
+          fechaCreacion: new Date(),
+          vendedorId: userProfile.uid
+        });
+      }
+
+      // ACTUALIZACIÓN DE STOCK: Descontar productos vendidos
+      for (const item of cart) {
+        const productRef = doc(db, "products", item.productId);
+        await updateDoc(productRef, {
+          stock: increment(-item.quantity)
+        });
+      }
 
       // Crear log de auditoría
       await createAuditLog({
@@ -526,7 +563,7 @@ export default function SalesManager() {
                 <span>${subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between mb-2">
-                <span className="font-semibold">IVA (12%):</span>
+                <span className="font-semibold">IVA ({ivaPercentage}%):</span>
                 <span>${iva.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-lg font-bold">
@@ -549,4 +586,3 @@ export default function SalesManager() {
     </div>
   );
 }
-

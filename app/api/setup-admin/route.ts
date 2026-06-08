@@ -213,6 +213,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Intentar verificar si ya existen usuarios
+    try {
+      const appCheck = getAdminApp();
+      let alreadyHasUsers = false;
+
+      if (appCheck) {
+        const snapshot = await getAdminFirestore(appCheck).collection("user_profiles").limit(1).get();
+        alreadyHasUsers = !snapshot.empty;
+      } else {
+        // Si falla el Admin SDK, intentamos con el Client SDK
+        alreadyHasUsers = await hasUsersWithClientSdk();
+      }
+
+      if (alreadyHasUsers) {
+        return NextResponse.json(
+          { error: "El sistema ya tiene un administrador. Por seguridad, esta ruta ha sido inhabilitada." },
+          { status: 403 }
+        );
+      }
+    } catch (checkError) {
+      console.error("Error verificando existencia de usuarios:", checkError);
+      // No bloqueamos aquí para permitir el intento de creación si es el primer despliegue
+    }
+
     try {
       const app = getAdminApp();
       const user = app
@@ -274,5 +298,3 @@ export async function GET() {
     });
   }
 }
-
-
