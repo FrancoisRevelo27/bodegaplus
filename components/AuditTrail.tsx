@@ -41,6 +41,7 @@ export default function AuditTrail() {
       actualizacion_producto: "Actualización de Producto",
       eliminacion_producto: "Eliminación de Producto",
       parametrizacion: "Parametrización",
+      registro_cliente: "Registro de Cliente",
     };
     return labels[tipo];
   };

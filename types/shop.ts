@@ -77,7 +77,7 @@ export interface Invoice {
 // ===== AUDITORÍA =====
 export interface AuditLog {
   id?: string;
-  tipo: "ingreso_producto" | "venta" | "actualizacion_producto" | "eliminacion_producto" | "parametrizacion";
+  tipo: "ingreso_producto" | "venta" | "actualizacion_producto" | "eliminacion_producto" | "parametrizacion" | "registro_cliente";
   usuarioId: string;
   usuarioNombre: string;
   usuarioEmail: string;
