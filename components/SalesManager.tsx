@@ -17,7 +17,7 @@ export default function SalesManager() {
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<SaleItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState("");
-  const [ivaPercentage, setIvaPercentage] = useState(12);
+  const [ivaPercentage, setIvaPercentage] = useState(15);
   const [quantity, setQuantity] = useState("1");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -470,11 +470,11 @@ export default function SalesManager() {
           {/* Agregar productos */}
           <div className="mb-6 p-4 border rounded-lg bg-gray-50">
             <h3 className="text-lg font-semibold mb-4">2. Agregar Productos</h3>
-            <div className="flex gap-2 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 mb-4">
               <select
                 value={selectedProduct}
                 onChange={(e) => setSelectedProduct(e.target.value)}
-                className="flex-1 px-3 py-2 border rounded"
+                className="sm:col-span-7 px-3 py-2 border rounded-xl bg-white outline-none focus:border-slate-900"
               >
                 <option value="">Seleccione un producto</option>
                 {products.map((product) => (
@@ -489,11 +489,11 @@ export default function SalesManager() {
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 placeholder="Cantidad"
-                className="w-24 px-3 py-2 border rounded"
+                className="sm:col-span-2 px-3 py-2 border rounded-xl bg-white outline-none focus:border-slate-900"
               />
               <button
                 onClick={addToCart}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                className="sm:col-span-3 px-4 py-2 bg-emerald-600 text-white font-bold rounded-full hover:bg-emerald-700 transition"
               >
                 Agregar
               </button>

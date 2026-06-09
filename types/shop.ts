@@ -95,6 +95,7 @@ export interface EmailConfig {
   servidorSMTP: string;
   puerto: number;
   usarSSL: boolean;
+  ivaPercentage?: number;
   createdAt?: any;
   updatedAt?: any;
   updatedBy?: string;

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -7,6 +8,7 @@ import { usePathname } from "next/navigation";
 export default function DashboardNav() {
   const { userProfile, isAdmin, logout } = useAuth();
   const pathname = usePathname();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const isActive = (path: string) => pathname === path;
 
@@ -35,7 +37,7 @@ export default function DashboardNav() {
             </Link>
           </div>
 
-          {/* Menu items */}
+          {/* Desktop Menu items */}
           <div className="hidden md:flex items-center gap-1">
             {visibleItems.map((item) => (
               <Link
@@ -53,7 +55,7 @@ export default function DashboardNav() {
           </div>
 
           {/* User info and logout */}
-          <div className="flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-4">
             <div className="text-sm hidden sm:block">
               <p className="font-semibold">{userProfile?.nombre}</p>
               <p className="text-slate-400 text-xs">

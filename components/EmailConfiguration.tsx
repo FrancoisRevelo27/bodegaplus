@@ -14,6 +14,7 @@ export default function EmailConfiguration() {
     contrasena: "",
     servidorSMTP: "",
     puerto: 587,
+    ivaPercentage: 15,
     usarSSL: false,
   });
   const [loading, setLoading] = useState(false);
@@ -36,6 +37,7 @@ export default function EmailConfiguration() {
           contrasena: "", // No mostrar contraseña por seguridad
           servidorSMTP: existingConfig.servidorSMTP,
           puerto: existingConfig.puerto,
+          ivaPercentage: existingConfig.ivaPercentage ?? 15,
           usarSSL: existingConfig.usarSSL,
         });
       }
@@ -53,6 +55,8 @@ export default function EmailConfiguration() {
       [name]:
         type === "checkbox"
           ? target.checked
+            : name === "ivaPercentage"
+            ? parseFloat(value)
           : name === "puerto"
           ? parseInt(value)
           : value,
@@ -91,6 +95,7 @@ export default function EmailConfiguration() {
             emailRemitente: formData.emailRemitente,
             servidorSMTP: formData.servidorSMTP,
             puerto: formData.puerto,
+            ivaPercentage: formData.ivaPercentage,
           },
         });
       }
@@ -108,15 +113,18 @@ export default function EmailConfiguration() {
 
   if (!isAdmin?.()) {
     return (
-      <div className="p-6 bg-white rounded-lg shadow">
+      <div className="p-6 bg-white rounded-3xl border border-zinc-200 shadow-sm">
         <p className="text-red-600">No tiene permisos para acceder a esta sección</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow">
-      <h2 className="text-2xl font-bold mb-6">Configuración de Email</h2>
+    <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="mb-6 flex flex-col gap-2">
+        <h2 className="text-xl font-semibold">Configuración del Sistema</h2>
+        <p className="text-sm text-zinc-600">Parametriza el IVA y los servicios de mensajería.</p>
+      </div>
 
       {error && (
         <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">
@@ -131,6 +139,27 @@ export default function EmailConfiguration() {
       )}
 
       <form onSubmit={handleSubmit} className="max-w-2xl">
+        <div className="mb-8 p-6 bg-zinc-50/50 border border-zinc-100 rounded-2xl">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-4">Impuestos</h3>
+          <div className="mb-2">
+            <label className="block text-sm font-semibold mb-2">Porcentaje de IVA (%) *</label>
+            <input
+              type="number"
+              name="ivaPercentage"
+              placeholder="15"
+              step="0.01"
+              value={formData.ivaPercentage}
+              onChange={handleInputChange}
+              required
+              className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-slate-900 transition-all"
+            />
+            <p className="text-xs text-zinc-500 mt-2">
+              Este valor se aplicará automáticamente a todos los cálculos de facturación.
+            </p>
+          </div>
+        </div>
+
+        <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-4 px-2">Servidor de Correo (SMTP)</h3>
         <div className="mb-4">
           <label className="block text-sm font-semibold mb-2">Email Remitente *</label>
           <input
@@ -140,7 +169,7 @@ export default function EmailConfiguration() {
             value={formData.emailRemitente}
             onChange={handleInputChange}
             required
-            className="w-full px-3 py-2 border rounded"
+            className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-slate-900"
           />
           <p className="text-xs text-gray-500 mt-1">
             Este será el email desde donde se enviarán las facturas
@@ -156,7 +185,7 @@ export default function EmailConfiguration() {
             value={formData.contrasena}
             onChange={handleInputChange}
             required
-            className="w-full px-3 py-2 border rounded"
+            className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-slate-900"
           />
           <p className="text-xs text-gray-500 mt-1">
             Para Gmail, use una contraseña de aplicación. Para otros servidores, use su contraseña.
@@ -172,14 +201,14 @@ export default function EmailConfiguration() {
             value={formData.servidorSMTP}
             onChange={handleInputChange}
             required
-            className="w-full px-3 py-2 border rounded"
+            className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-slate-900"
           />
           <p className="text-xs text-gray-500 mt-1">
             Ej: smtp.gmail.com (Gmail), smtp.office365.com (Outlook)
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-sm font-semibold mb-2">Puerto *</label>
             <input
@@ -188,7 +217,7 @@ export default function EmailConfiguration() {
               placeholder="587"
               value={formData.puerto}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border rounded"
+              className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-slate-900"
             />
             <p className="text-xs text-gray-500 mt-1">
               Típicamente 587 (TLS) o 465 (SSL)
@@ -210,7 +239,7 @@ export default function EmailConfiguration() {
           </div>
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 rounded p-4 mb-6">
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6">
           <p className="text-sm font-semibold text-blue-900 mb-2">Instrucciones de Configuración:</p>
           <ul className="text-xs text-blue-800 space-y-1">
             <li>• <strong>Gmail:</strong> smtp.gmail.com, Puerto 587, TLS activado, Contraseña de aplicación</li>
@@ -222,7 +251,7 @@ export default function EmailConfiguration() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full px-4 py-3 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50"
+          className="w-full rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-50"
         >
           {loading ? "Guardando..." : "Guardar Configuración"}
         </button>
