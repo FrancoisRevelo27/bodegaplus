@@ -20,7 +20,7 @@ Puede hacer todo, incluyendo:
 - ✅ Ver auditoría completa
 - ✅ Configurar email para envío de facturas
 - ✅ Ver dashboards
-- ✅ Gestionar inventario
+- ✅ Manejo de Inventario (Completo)
 - ✅ Ver reportes
 
 ### 👨‍💼 Empleado
@@ -30,7 +30,7 @@ Permisos limitados:
 - ❌ Ver auditoría
 - ❌ Configurar email
 - ✅ Ver dashboard básico
-- ✅ Gestionar inventario propio
+- ✅ Manejo de Inventario
 - ❌ Ver reportes detallados
 
 ---
@@ -50,6 +50,15 @@ Permisos limitados:
 - Búsqueda rápida
 
 **Auditoría:** Se registra cada cliente nuevo
+
+### 3. Manejo de Inventario (`/inventario`)
+**Acceso:** Admin + Empleado
+
+**Funcionalidades:**
+- Registro de nuevos productos con SKU único.
+- **Ingreso de Stock**: Botón dedicado para sumar existencias sin duplicar productos.
+- Actualización de precios y nombres.
+- Control de stock bajo (alerta visual).
 
 ### 2. Módulo de Ventas (`/ventas`)
 **Acceso:** Admin + Empleado

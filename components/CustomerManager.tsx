@@ -5,6 +5,7 @@ import { Customer } from "@/types/shop";
 import { createCustomer, getAllCustomers } from "@/lib/customers";
 import { useAuth } from "@/context/AuthContext";
 import { createAuditLog } from "@/lib/auditLogs";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function CustomerManager() {
   const { userProfile } = useAuth();
@@ -92,14 +93,15 @@ export default function CustomerManager() {
   };
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow">
-      <h2 className="text-2xl font-bold mb-6">Gestión de Clientes</h2>
+    <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-col gap-2 mb-6">
+        <h2 className="text-xl font-semibold">Gestión de Clientes</h2>
+        <p className="text-sm text-zinc-600">Registra y administra la base de datos de compradores.</p>
+      </div>
 
       <button
-        onClick={() => {
-          setShowForm(!showForm);
-        }}
-        className="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        onClick={() => setShowForm(!showForm)}
+        className="mb-6 rounded-full bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
       >
         {showForm ? "Cancelar" : "Registrar Nuevo Cliente"}
       </button>
@@ -117,16 +119,16 @@ export default function CustomerManager() {
       )}
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-6 p-4 border rounded-lg">
+        <form onSubmit={handleSubmit} className="mb-8 grid gap-4 rounded-2xl border border-zinc-100 bg-zinc-50/50 p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
               type="text"
               name="cedula"
-              placeholder="Cédula *"
+              placeholder="Cédula (ID) *"
               value={formData.cedula}
               onChange={handleInputChange}
               required
-              className="px-3 py-2 border rounded"
+              className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-slate-900"
             />
             <input
               type="text"
@@ -135,7 +137,7 @@ export default function CustomerManager() {
               value={formData.nombre}
               onChange={handleInputChange}
               required
-              className="px-3 py-2 border rounded"
+              className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-slate-900"
             />
             <input
               type="text"
@@ -144,7 +146,7 @@ export default function CustomerManager() {
               value={formData.apellido}
               onChange={handleInputChange}
               required
-              className="px-3 py-2 border rounded"
+              className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-slate-900"
             />
             <input
               type="email"
@@ -153,7 +155,7 @@ export default function CustomerManager() {
               value={formData.email}
               onChange={handleInputChange}
               required
-              className="px-3 py-2 border rounded"
+              className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-slate-900"
             />
             <input
               type="tel"
@@ -161,7 +163,7 @@ export default function CustomerManager() {
               placeholder="Teléfono"
               value={formData.telefono}
               onChange={handleInputChange}
-              className="px-3 py-2 border rounded"
+              className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-slate-900"
             />
             <input
               type="text"
@@ -169,7 +171,7 @@ export default function CustomerManager() {
               placeholder="Ciudad"
               value={formData.ciudad}
               onChange={handleInputChange}
-              className="px-3 py-2 border rounded"
+              className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-slate-900"
             />
             <input
               type="text"
@@ -177,48 +179,48 @@ export default function CustomerManager() {
               placeholder="Dirección"
               value={formData.direccion}
               onChange={handleInputChange}
-              className="px-3 py-2 border rounded md:col-span-2"
+              className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-slate-900 md:col-span-2"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+            className="rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-50"
           >
             {loading ? "Guardando..." : "Guardar Cliente"}
           </button>
         </form>
       )}
 
-      <div className="mt-6">
-        <h3 className="text-xl font-semibold mb-4">Clientes Registrados</h3>
+      <div className="mt-4">
+        <h3 className="mb-4 text-lg font-medium text-zinc-800">Clientes Registrados</h3>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-200">
-              <tr>
-                <th className="p-2 text-left">Cédula</th>
-                <th className="p-2 text-left">Nombre</th>
-                <th className="p-2 text-left">Email</th>
-                <th className="p-2 text-left">Teléfono</th>
-                <th className="p-2 text-left">Ciudad</th>
+          <table className="min-w-full divide-y divide-zinc-200 text-sm">
+            <thead>
+              <tr className="bg-zinc-50 text-left text-zinc-700">
+                <th className="px-4 py-3 font-semibold">Cédula</th>
+                <th className="px-4 py-3 font-semibold">Nombre</th>
+                <th className="px-4 py-3 font-semibold">Email</th>
+                <th className="px-4 py-3 font-semibold">Teléfono</th>
+                <th className="px-4 py-3 font-semibold">Ciudad</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-zinc-100">
               {customers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-2 text-center text-gray-500">
+                  <td colSpan={5} className="px-4 py-10 text-center text-zinc-500">
                     No hay clientes registrados
                   </td>
                 </tr>
               ) : (
                 customers.map((customer) => (
-                  <tr key={customer.id} className="border-b hover:bg-gray-50">
-                    <td className="p-2 font-mono">{customer.cedula}</td>
-                    <td className="p-2">{`${customer.nombre} ${customer.apellido}`}</td>
-                    <td className="p-2">{customer.email}</td>
-                    <td className="p-2">{customer.telefono}</td>
-                    <td className="p-2">{customer.ciudad}</td>
+                  <tr key={customer.id} className="hover:bg-zinc-50/50 transition-colors">
+                    <td className="px-4 py-3 font-mono text-xs text-zinc-600">{customer.cedula}</td>
+                    <td className="px-4 py-3 font-medium">{`${customer.nombre} ${customer.apellido}`}</td>
+                    <td className="px-4 py-3 text-zinc-600">{customer.email}</td>
+                    <td className="px-4 py-3 text-zinc-600">{customer.telefono}</td>
+                    <td className="px-4 py-3 text-zinc-600">{customer.ciudad}</td>
                   </tr>
                 ))
               )}

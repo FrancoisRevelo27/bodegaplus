@@ -308,46 +308,49 @@ export default function SalesManager() {
   const { subtotal, iva, total } = calculateTotals();
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow">
-      <h2 className="text-2xl font-bold mb-6">Gestor de Ventas</h2>
+    <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="mb-6 flex flex-col gap-2">
+        <h2 className="text-xl font-semibold">Gestor de Ventas</h2>
+        <p className="text-sm text-zinc-600">Genera facturas rápidas y descuenta stock automáticamente.</p>
+      </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">
+        <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-2xl text-sm border border-red-100">
           {error}
         </div>
       )}
 
       {success && (
-        <div className="mb-4 p-4 bg-green-100 text-green-700 rounded">
+        <div className="mb-4 p-4 bg-emerald-50 text-emerald-700 rounded-2xl text-sm border border-emerald-100">
           {success}
         </div>
       )}
 
       {/* Búsqueda de cliente */}
-      <div className="mb-6 p-4 border rounded-lg bg-gray-50">
-        <h3 className="text-lg font-semibold mb-4">1. Buscar o Registrar Cliente</h3>
+      <div className="mb-8 rounded-2xl border border-zinc-100 bg-zinc-50/50 p-6">
+        <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-zinc-500">1. Identificación del Cliente</h3>
         
         {!showRegisterCustomer ? (
-          <div className="flex gap-2 mb-4">
+          <div className="flex flex-wrap gap-2 mb-4">
             <input
               type="text"
               placeholder="Ingrese cédula del cliente"
               value={cedula}
               onChange={(e) => setCedula(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && searchCustomer()}
-              className="flex-1 px-3 py-2 border rounded"
+              className="min-w-[240px] flex-1 rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-slate-900"
               disabled={!!customer}
             />
             <button
               onClick={searchCustomer}
               disabled={loading || !!customer}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-full bg-slate-950 px-6 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
             >
               {loading ? "Buscando..." : "Buscar"}
             </button>
             <button
               onClick={() => setShowRegisterCustomer(true)}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              className="rounded-full border border-zinc-300 bg-white px-6 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
             >
               + Nuevo Cliente
             </button>
@@ -358,16 +361,16 @@ export default function SalesManager() {
                   setCedula("");
                   setCart([]);
                 }}
-                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                className="rounded-full bg-zinc-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-zinc-700"
               >
                 Limpiar
               </button>
             )}
           </div>
         ) : (
-          <div className="mb-4 p-4 border rounded-lg bg-white">
+          <div className="mb-4 p-6 border border-zinc-200 rounded-2xl bg-white shadow-sm">
             <div className="flex justify-between items-center mb-4">
-              <h4 className="font-semibold">Registrar Nuevo Cliente</h4>
+              <h4 className="font-bold text-zinc-800">Registrar Nuevo Cliente</h4>
               <button
                 onClick={() => setShowRegisterCustomer(false)}
                 className="text-gray-500 hover:text-gray-700 font-bold"
@@ -383,7 +386,7 @@ export default function SalesManager() {
                 onChange={(e) =>
                   setNewCustomerForm({ ...newCustomerForm, cedula: e.target.value })
                 }
-                className="px-3 py-2 border rounded text-sm"
+                className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-slate-900"
               />
               <input
                 type="text"
@@ -392,7 +395,7 @@ export default function SalesManager() {
                 onChange={(e) =>
                   setNewCustomerForm({ ...newCustomerForm, nombre: e.target.value })
                 }
-                className="px-3 py-2 border rounded text-sm"
+                className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-slate-900"
               />
               <input
                 type="text"
@@ -401,7 +404,7 @@ export default function SalesManager() {
                 onChange={(e) =>
                   setNewCustomerForm({ ...newCustomerForm, apellido: e.target.value })
                 }
-                className="px-3 py-2 border rounded text-sm"
+                className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-slate-900"
               />
               <input
                 type="email"
@@ -410,7 +413,7 @@ export default function SalesManager() {
                 onChange={(e) =>
                   setNewCustomerForm({ ...newCustomerForm, email: e.target.value })
                 }
-                className="px-3 py-2 border rounded text-sm"
+                className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-slate-900"
               />
               <input
                 type="tel"
@@ -419,7 +422,7 @@ export default function SalesManager() {
                 onChange={(e) =>
                   setNewCustomerForm({ ...newCustomerForm, telefono: e.target.value })
                 }
-                className="px-3 py-2 border rounded text-sm"
+                className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-slate-900"
               />
               <input
                 type="text"
@@ -428,7 +431,7 @@ export default function SalesManager() {
                 onChange={(e) =>
                   setNewCustomerForm({ ...newCustomerForm, ciudad: e.target.value })
                 }
-                className="px-3 py-2 border rounded text-sm"
+                className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-slate-900"
               />
               <input
                 type="text"
@@ -437,22 +440,16 @@ export default function SalesManager() {
                 onChange={(e) =>
                   setNewCustomerForm({ ...newCustomerForm, direccion: e.target.value })
                 }
-                className="px-3 py-2 border rounded text-sm md:col-span-2"
+                className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-slate-900 md:col-span-2"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 mt-4 pt-4 border-t border-zinc-100">
               <button
                 onClick={registerNewCustomer}
                 disabled={loading}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                className="flex-1 rounded-xl bg-slate-950 px-6 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:opacity-50"
               >
                 {loading ? "Guardando..." : "Guardar Cliente"}
-              </button>
-              <button
-                onClick={() => setShowRegisterCustomer(false)}
-                className="flex-1 px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
-              >
-                Cancelar
               </button>
             </div>
           </div>
