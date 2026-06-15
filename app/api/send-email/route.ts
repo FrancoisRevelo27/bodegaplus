@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEmailConfig } from "@/lib/emailConfig";
+import { Resend } from 'resend';
 
-// Nota: Para usar nodemailer correctamente, necesitarías instalarlo
-// npm install nodemailer
-// y crear variables de entorno para las credenciales
-// Este es un ejemplo de estructura, pero en producción deberías usar:
-// 1. Un servicio como SendGrid, Mailgun, o Resend
-// 2. O configurar nodemailer correctamente con las credenciales
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,20 +28,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // IMPORTANTE: Esta es una demostración
-    // En un ambiente de producción, deberías:
-    // 1. Usar un servicio de email como SendGrid, Mailgun, Resend, etc.
-    // 2. O usar nodemailer con nodemailer-smtp-transport en el servidor
+    // Envío real a través de Resend
+    const { data, error: resendError } = await resend.emails.send({
+      from: 'BodegaPlus <onboarding@resend.dev>',
+      to: [to],
+      subject: subject || 'Tu factura de BodegaPlus',
+      html: html,
+      attachments: pdfBase64 ? [
+        {
+          filename: fileName || 'factura.pdf',
+          content: pdfBase64,
+        }
+      ] : [],
+    });
 
-    // Para demo, simplemente retornamos éxito
-    // En producción reemplazarías esto con la lógica real de envío
+    if (resendError) throw resendError;
 
     return NextResponse.json(
       {
         success: true,
-        message: "Email configurado para envío",
-        to,
-        subject,
+        message: "Email enviado exitosamente",
+        id: data?.id
       },
       { status: 200 }
     );

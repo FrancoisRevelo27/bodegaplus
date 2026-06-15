@@ -56,36 +56,78 @@ export default function DashboardNav() {
 
           {/* User info and logout */}
           <div className="hidden md:flex items-center gap-4">
-            <div className="text-sm hidden sm:block">
-              <p className="font-semibold">{userProfile?.nombre}</p>
-              <p className="text-slate-400 text-xs">
-                {userProfile?.rol === "admin" ? "Administrador" : "Empleado"}
-              </p>
-            </div>
-            <button
-              onClick={logout}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-sm font-semibold transition"
-            >
-              Salir
-            </button>
+            {userProfile ? (
+              <>
+                <div className="text-sm hidden sm:block">
+                  <p className="font-semibold">{userProfile.nombre}</p>
+                  <p className="text-slate-400 text-xs">
+                    {userProfile.rol === "admin" ? "Administrador" : "Empleado"}
+                  </p>
+                </div>
+                <button
+                  onClick={logout}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-sm font-semibold transition"
+                >
+                  Salir
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-md text-sm font-semibold transition"
+              >
+                Ingresar
+              </Link>
+            )}
           </div>
         </div>
 
         {/* Mobile menu */}
-        <div className="md:hidden flex gap-1 pb-3 flex-wrap">
-          {visibleItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`px-3 py-2 rounded-md text-xs font-medium transition ${
-                isActive(item.href)
-                  ? "bg-slate-700 text-white"
-                  : "text-slate-300 hover:bg-slate-700 hover:text-white"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+        <div className="md:hidden flex flex-col gap-4 pb-4 px-2">
+          {userProfile ? (
+            <>
+              <div className="flex gap-1 flex-wrap">
+                {visibleItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`px-3 py-2 rounded-md text-xs font-medium transition ${
+                      isActive(item.href)
+                        ? "bg-slate-700 text-white"
+                        : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+              
+              {/* Sección de Usuario y Salir para Móvil */}
+              <div className="pt-3 border-t border-slate-700 flex items-center justify-between">
+                <div className="text-sm">
+                  <p className="font-semibold text-white">{userProfile.nombre}</p>
+                  <p className="text-slate-400 text-[10px] uppercase tracking-wider">
+                    {userProfile.rol === "admin" ? "Administrador" : "Empleado"}
+                  </p>
+                </div>
+                <button
+                  onClick={logout}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-xs font-bold transition shadow-sm"
+                >
+                  Salir
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex justify-center pt-2">
+              <Link
+                href="/login"
+                className="w-full text-center px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-md text-sm font-semibold transition"
+              >
+                Ingresar
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </nav>

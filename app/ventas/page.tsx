@@ -6,7 +6,8 @@ export default function VentasPage() {
   return (
     <>
       <DashboardNav />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Ajuste de padding: menor en móviles (px-2 py-4) y estándar en escritorio */}
+      <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-4 sm:py-8">
         <ProtectedRoute>
           <SalesManager />
         </ProtectedRoute>

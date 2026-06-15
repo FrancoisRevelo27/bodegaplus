@@ -11,12 +11,16 @@ import {
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { useAuth } from "@/context/AuthContext";
 import { createAuditLog } from "@/lib/auditLogs";
+import { Html5QrcodeScanner } from "html5-qrcode";
 
 export default function ProductManager({ onProductsUpdated }: { onProductsUpdated: (products: Product[]) => void }) {
   const { userProfile } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ name: "", sku: "", unitPrice: "", stock: "" });
+  const [form, setForm] = useState({ name: "", sku: "", barcode: "", unitPrice: "", stock: "" });
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanningTarget, setScanningTarget] = useState<"new" | string | null>(null);
 
   // Estados para el ingreso de stock
   const [restockProduct, setRestockProduct] = useState<Product | null>(null);
@@ -44,12 +48,39 @@ export default function ProductManager({ onProductsUpdated }: { onProductsUpdate
     loadProducts();
   }, []);
 
-  const handleAdd = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  // Lógica del Escáner
+  useEffect(() => {
+    let scanner: Html5QrcodeScanner | null = null;
+    if (isScanning) {
+      scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }, false);
+      scanner.render(
+        (decodedText) => {
+          if (scanningTarget === "new") {
+            setForm(prev => ({ ...prev, barcode: decodedText }));
+          } else if (scanningTarget) {
+            setProducts(current => 
+              current.map(p => p.id === scanningTarget ? { ...p, barcode: decodedText } : p)
+            );
+          }
+          setIsScanning(false);
+          setScanningTarget(null);
+          scanner?.clear();
+        },
+        () => {}
+      );
+    }
+    return () => {
+      if (scanner) {
+        scanner.clear().catch(e => console.error("Error clearing scanner", e));
+      }
+    };
+  }, [isScanning, scanningTarget]);
+
+  const handleAdd = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     setOperationId("add");
     setError(null);
 
-    // Validar SKU único
     const existing = products.find(p => p.sku.toLowerCase() === form.sku.toLowerCase());
     if (existing) {
       setError(`El código ${form.sku} ya pertenece al producto "${existing.name}". Use "Ingresar Stock" en la tabla.`);
@@ -61,6 +92,7 @@ export default function ProductManager({ onProductsUpdated }: { onProductsUpdate
       await addProduct({
         name: form.name,
         sku: form.sku,
+        barcode: form.barcode,
         unitPrice: Number(form.unitPrice),
         stock: Number(form.stock),
       });
@@ -74,13 +106,15 @@ export default function ProductManager({ onProductsUpdated }: { onProductsUpdate
           descripcion: `Producto agregado: ${form.name}`,
           detalles: {
             productSku: form.sku,
+            barcode: form.barcode,
             precio: Number(form.unitPrice),
             stock: Number(form.stock)
           },
         });
       }
 
-      setForm({ name: "", sku: "", unitPrice: "", stock: "" });
+      setForm({ name: "", sku: "", barcode: "", unitPrice: "", stock: "" });
+      setIsAddModalOpen(false);
       await loadProducts();
     } catch (err) {
       setError("Error al agregar el producto. Revisa los datos.");
@@ -166,6 +200,7 @@ export default function ProductManager({ onProductsUpdated }: { onProductsUpdate
       await updateProduct(product.id!, {
         name: product.name,
         sku: product.sku,
+        barcode: product.barcode,
         unitPrice: product.unitPrice,
         stock: product.stock,
       });
@@ -223,57 +258,86 @@ export default function ProductManager({ onProductsUpdated }: { onProductsUpdate
         </div>
       )}
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
+      {/* Modal de Nuevo Producto */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-2xl rounded-3xl bg-white p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-slate-950">Ingresar Nuevo Inventario</h3>
+              <button onClick={() => { setIsAddModalOpen(false); setIsScanning(false); }} className="text-zinc-400 hover:text-zinc-600">✕</button>
+            </div>
+
+            {isScanning && scanningTarget === "new" && (
+              <div className="mb-6 overflow-hidden rounded-2xl border-2 border-dashed border-zinc-200">
+                <div id="reader" className="w-full"></div>
+                <button onClick={() => setIsScanning(false)} className="w-full bg-zinc-100 py-2 text-xs font-bold text-zinc-600">Cancelar Escaneo</button>
+              </div>
+            )}
+
+            <form onSubmit={handleAdd} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold uppercase text-zinc-500">Nombre del Producto</label>
+                  <input value={form.name} onChange={e => handleFieldChange("name", e.target.value)} required className="mt-1 w-full rounded-xl border border-zinc-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-slate-900" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold uppercase text-zinc-500">Código SKU</label>
+                  <input value={form.sku} onChange={e => handleFieldChange("sku", e.target.value)} required className="mt-1 w-full rounded-xl border border-zinc-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-slate-900" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs font-bold uppercase text-zinc-500">Código de Barras</label>
+                  <div className="flex gap-2">
+                    <input value={form.barcode} onChange={e => handleFieldChange("barcode", e.target.value)} placeholder="Escanear o ingresar manualmente" className="mt-1 flex-1 rounded-xl border border-zinc-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-slate-900" />
+                    <button type="button" onClick={() => { setScanningTarget("new"); setIsScanning(true); }} className="mt-1 bg-slate-100 px-4 rounded-xl hover:bg-slate-200 transition-colors">
+                      📷 <span className="hidden sm:inline ml-1 text-xs font-bold">Escanear</span>
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-bold uppercase text-zinc-500">Precio de Venta</label>
+                  <input type="number" step="0.01" value={form.unitPrice} onChange={e => handleFieldChange("unitPrice", e.target.value)} required className="mt-1 w-full rounded-xl border border-zinc-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-slate-900" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold uppercase text-zinc-500">Stock Inicial</label>
+                  <input type="number" value={form.stock} onChange={e => handleFieldChange("stock", e.target.value)} required className="mt-1 w-full rounded-xl border border-zinc-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-slate-900" />
+                </div>
+              </div>
+
+              {error && <p className="text-xs text-red-600 font-bold">{error}</p>}
+
+              <div className="mt-8 flex gap-3 pt-6 border-t">
+                <button type="submit" disabled={operationId === "add"} className="flex-1 rounded-full bg-slate-950 py-3 text-sm font-bold text-white hover:bg-slate-800 transition shadow-lg shadow-slate-200">
+                  {operationId === "add" ? "Guardando..." : "Guardar Producto"}
+                </button>
+                <button type="button" onClick={() => setIsAddModalOpen(false)} className="flex-1 rounded-full border border-zinc-200 py-3 text-sm font-bold text-zinc-600 hover:bg-zinc-50 transition">
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-10">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Inventario de Productos</h2>
           <p className="text-sm text-zinc-500">Administra existencias y precios de venta.</p>
         </div>
+        <button 
+          onClick={() => setIsAddModalOpen(true)}
+          className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white hover:bg-slate-800 transition-all shadow-xl shadow-slate-100"
+        >
+          <span className="text-lg">+</span> Ingresar Inventario
+        </button>
       </div>
 
-      <form onSubmit={handleAdd} className="grid gap-3 md:grid-cols-5 bg-zinc-50/50 p-4 rounded-2xl border border-zinc-100">
-        <input
-          value={form.name}
-          onChange={(e) => handleFieldChange("name", e.target.value)}
-          placeholder="Nombre"
-          className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-slate-900 transition-all"
-          required
-        />
-        <input
-          value={form.sku}
-          onChange={(e) => handleFieldChange("sku", e.target.value)}
-          placeholder="Código de producto"
-          className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-slate-900 transition-all"
-          required
-        />
-        <input
-          value={form.unitPrice}
-          onChange={(e) => handleFieldChange("unitPrice", e.target.value)}
-          placeholder="Precio unitario"
-          type="number"
-          min="0"
-          step="0.01"
-          className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-slate-900 transition-all"
-          required
-        />
-        <input
-          value={form.stock}
-          onChange={(e) => handleFieldChange("stock", e.target.value)}
-          placeholder="Stock"
-          type="number"
-          min="0"
-          className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-slate-900 transition-all"
-          required
-        />
-        <button
-          type="submit"
-          disabled={operationId === "add"}
-          className="rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:opacity-60 shadow-sm"
-        >
-          {operationId === "add" ? "Agregando..." : "Agregar producto"}
-        </button>
-      </form>
-
-      {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
+      {isScanning && scanningTarget !== "new" && (
+        <div className="mb-6 p-4 bg-slate-50 border rounded-2xl">
+          <p className="text-center text-xs font-bold text-slate-500 mb-2 uppercase">Escaneando código para producto existente</p>
+          <div id="reader" className="mx-auto max-w-sm overflow-hidden rounded-xl"></div>
+          <button onClick={() => setIsScanning(false)} className="mx-auto block mt-2 text-xs font-bold text-red-500">Detener cámara</button>
+        </div>
+      )}
 
       <div className="mt-8 overflow-x-auto">
         {loading ? (
@@ -286,6 +350,7 @@ export default function ProductManager({ onProductsUpdated }: { onProductsUpdate
               <tr className="bg-zinc-50 text-left text-zinc-700">
                 <th className="px-4 py-3 font-bold text-slate-700">Producto</th>
                 <th className="px-4 py-3 font-bold text-slate-700">Código SKU</th>
+                <th className="px-4 py-3 font-bold text-slate-700">Código Barras</th>
                 <th className="px-4 py-3 font-bold text-slate-700">Precio</th>
                 <th className="px-4 py-3 font-bold text-slate-700 text-center">Stock</th>
                 <th className="px-4 py-3 text-right font-bold text-slate-700">Acciones</th>
@@ -320,6 +385,19 @@ export default function ProductManager({ onProductsUpdated }: { onProductsUpdate
                       className="w-full rounded-lg border border-transparent hover:border-zinc-200 focus:bg-white focus:border-zinc-300 bg-transparent px-2 py-2 text-sm font-mono text-xs outline-none transition-all"
                     />
                   </td>
+                  <td className="px-4 py-4">
+                    <input
+                      value={product.barcode || ""}
+                      onChange={(event) =>
+                        setProducts((current) =>
+                          current.map((item) =>
+                            item.id === product.id ? { ...item, barcode: event.target.value } : item
+                          )
+                        )
+                      }
+                      className="w-full rounded-lg border border-transparent hover:border-zinc-200 focus:bg-white focus:border-zinc-300 bg-transparent px-2 py-2 text-sm font-mono text-xs outline-none transition-all"
+                    />
+                  </td>
                   <td className="px-4 py-4 w-28">
                     <input
                       type="number"
@@ -337,19 +415,29 @@ export default function ProductManager({ onProductsUpdated }: { onProductsUpdate
                     />
                   </td>
                   <td className="px-4 py-4 w-24 text-center">
-                    <input
-                      type="number"
-                      min="0"
-                      value={product.stock}
-                      onChange={(event) =>
-                        setProducts((current) =>
-                          current.map((item) =>
-                            item.id === product.id ? { ...item, stock: Number(event.target.value) } : item
+                    <div className="relative group">
+                      <input
+                        type="number"
+                        min="0"
+                        value={product.stock}
+                        onChange={(event) =>
+                          setProducts((current) =>
+                            current.map((item) =>
+                              item.id === product.id ? { ...item, stock: Number(event.target.value) } : item
+                            )
                           )
-                        )
-                      }
-                      className="w-full text-center rounded-lg border border-transparent hover:border-zinc-200 focus:bg-white focus:border-zinc-300 bg-transparent px-2 py-2 text-sm outline-none transition-all font-bold"
-                    />
+                        }
+                        className={`w-full text-center rounded-lg border border-transparent focus:bg-white px-2 py-2 text-sm outline-none transition-all font-bold ${
+                          product.stock <= 5 ? "text-red-600 bg-red-50" : "text-slate-900"
+                        }`}
+                      />
+                      {product.stock <= 5 && (
+                        <span className="absolute -top-2 -right-2 flex h-4 w-4">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-[10px] text-white items-center justify-center">!</span>
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center justify-end gap-2 whitespace-nowrap">

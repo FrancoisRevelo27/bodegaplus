@@ -2,6 +2,7 @@ export interface Product {
   id?: string;
   name: string;
   sku: string;
+  barcode?: string;
   unitPrice: number;
   stock: number;
   createdAt?: any;
@@ -12,7 +13,11 @@ export interface Sale {
   productId: string;
   productName: string;
   quantity: number;
+  unitPrice?: number;
   totalAmount: number;
+  vendedorId?: string;
+  invoiceId?: string;
+  fechaCreacion?: any;
   createdAt?: any;
 }
 

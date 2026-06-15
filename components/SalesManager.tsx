@@ -7,7 +7,7 @@ import { createInvoice, getLatestInvoiceNumber } from "@/lib/invoices";
 import { createAuditLog } from "@/lib/auditLogs";
 import { useAuth } from "@/context/AuthContext";
 import { downloadInvoicePDF } from "@/lib/pdfGenerator";
-import { getDocs, collection, query, where, getDoc, doc, updateDoc, increment, addDoc } from "firebase/firestore";
+import { getDocs, collection, query, where, getDoc, doc, writeBatch, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export default function SalesManager() {
@@ -16,6 +16,7 @@ export default function SalesManager() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<SaleItem[]>([]);
+  const [barcodeInput, setBarcodeInput] = useState("");
   const [selectedProduct, setSelectedProduct] = useState("");
   const [ivaPercentage, setIvaPercentage] = useState(15);
   const [quantity, setQuantity] = useState("1");
@@ -148,6 +149,56 @@ export default function SalesManager() {
     }
   };
 
+  const handleBarcodeSearch = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && barcodeInput.trim()) {
+      const product = products.find(p => 
+        p.barcode?.trim() === barcodeInput.trim() || p.sku?.trim() === barcodeInput.trim()
+      );
+      
+      if (product) {
+        if (product.stock <= 0) {
+          setError("Producto sin stock");
+        } else {
+          addItemToCart(product, 1);
+          setSuccess(`Agregado: ${product.name}`);
+          setTimeout(() => setSuccess(""), 2000);
+        }
+      } else {
+        setError("Producto no encontrado por código");
+      }
+      setBarcodeInput("");
+    }
+  };
+
+  const addItemToCart = (product: Product, qty: number) => {
+    const existingItem = cart.find((c) => c.productId === product.id);
+    const currentQtyInCart = existingItem ? existingItem.quantity : 0;
+
+    if (currentQtyInCart + qty > product.stock) {
+      setError(`Stock insuficiente para "${product.name}" (Disponible: ${product.stock})`);
+      return;
+    }
+
+    const item: SaleItem = {
+      productId: product.id!,
+      productName: product.name,
+      quantity: qty,
+      unitPrice: product.unitPrice,
+      subtotal: qty * product.unitPrice,
+    };
+
+    if (existingItem) {
+      setCart(cart.map((c) => 
+        c.productId === product.id 
+          ? { ...c, quantity: c.quantity + qty, subtotal: (c.quantity + qty) * c.unitPrice } 
+          : c
+      ));
+    } else {
+      setCart([...cart, item]);
+    }
+    setError("");
+  };
+
   const addToCart = () => {
     if (!selectedProduct || !quantity) {
       setError("Seleccione producto y cantidad");
@@ -161,42 +212,7 @@ export default function SalesManager() {
     }
 
     const qty = parseInt(quantity);
-    if (qty <= 0 || qty > product.stock) {
-      setError(`Cantidad inválida o stock insuficiente (disponible: ${product.stock})`);
-      return;
-    }
-
-    const item: SaleItem = {
-      productId: product.id!,
-      productName: product.name,
-      quantity: qty,
-      unitPrice: product.unitPrice,
-      subtotal: qty * product.unitPrice,
-    };
-
-    // Verificar si el producto ya está en el carrito
-    const existingItem = cart.find((c) => c.productId === product.id);
-    if (existingItem) {
-      // Actualizar cantidad
-      const newQty = existingItem.quantity + qty;
-      if (newQty > product.stock) {
-        setError(`No hay suficiente stock para esta cantidad (disponible: ${product.stock})`);
-        return;
-      }
-      setCart(
-        cart.map((c) =>
-          c.productId === product.id
-            ? {
-                ...c,
-                quantity: newQty,
-                subtotal: newQty * c.unitPrice,
-              }
-            : c
-        )
-      );
-    } else {
-      setCart([...cart, item]);
-    }
+    addItemToCart(product, qty);
 
     setSelectedProduct("");
     setQuantity("1");
@@ -229,14 +245,17 @@ export default function SalesManager() {
     setLoading(true);
     setError("");
 
+    const batch = writeBatch(db);
+    const invoiceRef = doc(collection(db, "invoices"));
+
     try {
       const { subtotal, iva, total } = calculateTotals();
       const numeroFactura = await getLatestInvoiceNumber();
 
-      const invoice: Omit<Invoice, "id" | "fechaCreacion"> = {
+      const invoiceData: Omit<Invoice, "id" | "fechaCreacion"> = {
         numeroFactura,
         customerId: customer.id!,
-        customerName: `${customer.nombre} ${customer.apellido}`,
+        customerName: `${customer.nombre} ${customer.apellido}`.trim(),
         customerCedula: customer.cedula,
         customerEmail: customer.email,
         items: cart,
@@ -249,28 +268,29 @@ export default function SalesManager() {
         observaciones,
       };
 
-      const createdInvoice = await createInvoice(invoice);
+      // Agregar la factura al batch
+      batch.set(invoiceRef, { ...invoiceData, fechaCreacion: new Date() });
 
-      // REGISTRO PARA REPORTES: Guardar cada item en la colección 'sales'
       for (const item of cart) {
-        await addDoc(collection(db, "sales"), {
+        const saleRef = doc(collection(db, "sales"));
+        batch.set(saleRef, {
           productId: item.productId,
           productName: item.productName,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           totalAmount: item.subtotal,
           fechaCreacion: new Date(),
-          vendedorId: userProfile.uid
+          vendedorId: userProfile.uid,
+          invoiceId: invoiceRef.id
         });
+
+        // Actualización de stock atómica
+        const productRef = doc(db, "products", item.productId);
+        batch.update(productRef, { stock: increment(-item.quantity) });
       }
 
-      // ACTUALIZACIÓN DE STOCK: Descontar productos vendidos
-      for (const item of cart) {
-        const productRef = doc(db, "products", item.productId);
-        await updateDoc(productRef, {
-          stock: increment(-item.quantity)
-        });
-      }
+      // Ejecutamos todos los cambios en la base de datos de una sola vez
+      await batch.commit();
 
       // Crear log de auditoría
       await createAuditLog({
@@ -280,7 +300,7 @@ export default function SalesManager() {
         usuarioEmail: userProfile.email,
         descripcion: `Venta realizada a ${customer.nombre} ${customer.apellido}`,
         detalles: {
-          invoiceId: createdInvoice.id,
+          invoiceId: invoiceRef.id,
           customerCedula: customer.cedula,
           total,
           itemsCount: cart.length,
@@ -288,8 +308,8 @@ export default function SalesManager() {
       });
 
       // Descargar PDF
-      const invoiceWithId = { ...createdInvoice, id: createdInvoice.id || "" } as Invoice;
-      downloadInvoicePDF(invoiceWithId);
+      const invoiceForPDF = { ...invoiceData, id: invoiceRef.id, fechaCreacion: new Date() } as Invoice;
+      downloadInvoicePDF(invoiceForPDF);
 
       setSuccess("Factura generada y descargada exitosamente");
       setCart([]);
@@ -470,6 +490,19 @@ export default function SalesManager() {
           {/* Agregar productos */}
           <div className="mb-6 p-4 border rounded-lg bg-gray-50">
             <h3 className="text-lg font-semibold mb-4">2. Agregar Productos</h3>
+            
+            <div className="mb-4">
+              <label className="text-xs font-bold text-zinc-500 uppercase">Escanear Código de Barras / SKU</label>
+              <input
+                type="text"
+                value={barcodeInput}
+                onChange={(e) => setBarcodeInput(e.target.value)}
+                onKeyDown={handleBarcodeSearch}
+                placeholder="Pase el escáner o escriba el código..."
+                className="mt-1 w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-slate-900 outline-none"
+              />
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 mb-4">
               <select
                 value={selectedProduct}
