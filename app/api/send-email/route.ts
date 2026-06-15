@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEmailConfig } from "@/lib/emailConfig";
-import { Resend } from 'resend';
+import nodemailer from "nodemailer";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,27 +28,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Envío real a través de Resend
-    const { data, error: resendError } = await resend.emails.send({
-      from: 'BodegaPlus <onboarding@resend.dev>',
-      to: [to],
-      subject: subject || 'Tu factura de BodegaPlus',
-      html: html,
-      attachments: pdfBase64 ? [
-        {
-          filename: fileName || 'factura.pdf',
-          content: pdfBase64,
-        }
-      ] : [],
+    // Configurar el transporte SMTP con los datos de la base de datos
+    const transporter = nodemailer.createTransport({
+      host: emailConfig.servidorSMTP,
+      port: emailConfig.puerto,
+      secure: emailConfig.usarSSL, // true para puerto 465, false para otros
+      auth: {
+        user: emailConfig.emailRemitente,
+        pass: emailConfig.contrasena,
+      },
     });
 
-    if (resendError) throw resendError;
+    // Envío del correo
+    const info = await transporter.sendMail({
+      from: `"BodegaPlus" <${emailConfig.emailRemitente}>`,
+      to,
+      subject: subject || "Tu factura de BodegaPlus",
+      html: html,
+      attachments: pdfBase64 
+        ? [{ filename: fileName || "factura.pdf", content: pdfBase64, encoding: 'base64' }] 
+        : [],
+    });
 
     return NextResponse.json(
       {
         success: true,
         message: "Email enviado exitosamente",
-        id: data?.id
+        id: info.messageId,
       },
       { status: 200 }
     );
