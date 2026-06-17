@@ -10,6 +10,7 @@
     "setup:admin": "node scripts/create-admin.js"
   },
   "dependencies": {
+    "@vercel/speed-insights": "^2.0.0",
     "firebase": "^12.14.0",
     "firebase-admin": "^13.10.0",
     "html2canvas": "^1.4.1",
